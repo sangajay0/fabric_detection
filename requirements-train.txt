@@ -1,0 +1,9 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Training-only dependencies  (heavy — GPU strongly recommended)
+# Install on Google Colab (T4 GPU):
+#   pip install -r requirements-train.txt
+# ──────────────────────────────────────────────────────────────────────────────
+
+anomalib>=1.1,<2.0
+torch>=2.2,<3.0
+torchvision>=0.17,<1.0

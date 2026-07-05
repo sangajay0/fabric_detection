@@ -1,0 +1,27 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Core dependencies
+# Run on CPU-only machines (codespace, production server, Raspberry Pi, etc.)
+# Install with:  pip install -r requirements.txt
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Image processing (headless = no libGL dependency, correct for servers/codespaces)
+opencv-python-headless>=4.9,<5.0
+numpy>=1.26,<2.0
+
+# API server
+fastapi>=0.111,<1.0
+uvicorn[standard]>=0.29,<1.0
+python-multipart>=0.0.9    # required for FastAPI file uploads
+pydantic>=2.7,<3.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Training-only dependencies  (heavy — GPU strongly recommended)
+# Do NOT install these in the codespace unless you explicitly want CPU versions.
+# On Google Colab (T4 GPU), install with:
+#   pip install -r requirements.txt -r requirements-train.txt
+# Or manually:
+#   pip install anomalib torch torchvision
+# ──────────────────────────────────────────────────────────────────────────────
+# anomalib>=1.1,<2.0
+# torch>=2.2,<3.0
+# torchvision>=0.17,<1.0

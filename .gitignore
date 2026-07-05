@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.installed.cfg
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Project-specific ──────────────────────────────────────────────────────────
+
+# Trained model artefacts (large binary files — store via Git LFS or external storage)
+models/
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# ── Data directory rules ───────────────────────────────────────────────────
+# Ignore ALL generated tile images inside data/ …
+data/normal/
+data/test/good/
+data/test/defect/
+# … but always keep raw source images (the 4 originals + synthetic donor)
+!data/raw_source/
+
+# Anomalib run artefacts
+results/
+lightning_logs/
+
+# Environment variables / secrets
+.env
+.env.*
+secrets.yaml
+
+# Logs
+*.log
+logs/
