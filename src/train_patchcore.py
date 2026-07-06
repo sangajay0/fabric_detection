@@ -297,10 +297,13 @@ def train(args: argparse.Namespace) -> None:
         print("[train_patchcore] Using Patchcore API: layers_list= (anomalib ≤0.4)")
 
     # ── Engine ───────────────────────────────────────────────────────────────
-    # default_root_dir controls where Lightning writes checkpoints, logs, and
-    # Anomalib's visualisation outputs.
+    # visualizers=None disables the anomalib visualisation callback.
+    # This avoids a matplotlib ≥3.8 incompatibility where tostring_rgb()
+    # was removed (replaced by buffer_rgba()).  We don't need heatmap PNGs
+    # here — the checkpoint (.ckpt) is what matters.
     engine = Engine(
         default_root_dir=str(args.output_dir),
+        visualizers=None,   # ← skip visualisation, avoid matplotlib crash
     )
 
     # ── Fit (build memory bank) ───────────────────────────────────────────────
@@ -313,11 +316,17 @@ def train(args: argparse.Namespace) -> None:
     # ── Test / evaluate (optional) ────────────────────────────────────────────
     # Only runs if test/defect/ has images.  Calibrates the anomaly threshold
     # and logs AUROC / F1-score to the output directory.
+    # Wrapped in try/except: the checkpoint is already saved after fit() so a
+    # non-fatal error here (e.g. visualisation crash) must not kill the script.
     test_defect_dir = args.data_root / "test" / "defect"
     if test_defect_dir.is_dir() and any(test_defect_dir.iterdir()):
         print("[train_patchcore] Evaluating on test split …")
-        engine.test(model=model, datamodule=datamodule)
-        print("[train_patchcore] Evaluation complete.")
+        try:
+            engine.test(model=model, datamodule=datamodule)
+            print("[train_patchcore] Evaluation complete.")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[train_patchcore] WARNING: test phase raised an error (non-fatal): {exc}")
+            print("[train_patchcore] Checkpoint was already saved during fit() — safe to download.")
     else:
         print(
             "[train_patchcore] Skipping evaluation — "
