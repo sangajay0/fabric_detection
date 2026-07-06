@@ -297,14 +297,15 @@ def train(args: argparse.Namespace) -> None:
         print("[train_patchcore] Using Patchcore API: layers_list= (anomalib ≤0.4)")
 
     # ── Engine ───────────────────────────────────────────────────────────────
-    # visualizers=None disables the anomalib visualisation callback.
-    # This avoids a matplotlib ≥3.8 incompatibility where tostring_rgb()
-    # was removed (replaced by buffer_rgba()).  We don't need heatmap PNGs
-    # here — the checkpoint (.ckpt) is what matters.
+    # default_root_dir controls where Lightning writes checkpoints, logs, and
+    # Anomalib's visualisation outputs.
+    # NOTE: visualizers= is NOT passed here — it is unsupported in this
+    # anomalib version.  Any visualisation crash during test() is caught by
+    # the try/except below; the checkpoint is safe after fit().
     engine = Engine(
         default_root_dir=str(args.output_dir),
-        visualizers=None,   # ← skip visualisation, avoid matplotlib crash
     )
+
 
     # ── Fit (build memory bank) ───────────────────────────────────────────────
     # PatchCore "training" is a single-pass feature extraction — no back-prop.
