@@ -217,6 +217,7 @@ def train(args: argparse.Namespace) -> None:
         #   abnormal_dir – sub-folder with defective images (test evaluation)
         #   normal_test_dir – defect-free images for test-split validation
         from anomalib.data import Folder
+        from anomalib.data.utils import TaskType
 
         # anomalib.models.Patchcore
         # ──────────────────────────
@@ -256,9 +257,9 @@ def train(args: argparse.Namespace) -> None:
     print(f"[train_patchcore] image_size : {args.image_size}")
 
     # ── Folder dataset ───────────────────────────────────────────────────────
-    # Anomalib's Folder adapter requires only a normal_dir for training.
-    # abnormal_dir and normal_test_dir are used only during test/eval — if
-    # those sub-folders don't exist yet, Anomalib skips the test split.
+    # task=TaskType.CLASSIFICATION → image-level labels only, no pixel masks
+    # needed. Segmentation (the default in some anomalib versions) requires
+    # per-pixel mask files which we don't have for a synthetic dataset.
     datamodule = Folder(
         name="warp_sheet",
         root=args.data_root,
