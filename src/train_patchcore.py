@@ -275,18 +275,26 @@ def train(args: argparse.Namespace) -> None:
     )
 
     # ── PatchCore model ──────────────────────────────────────────────────────
-    # backbone: pretrained CNN used as a fixed feature extractor.
-    # layers_list: which intermediate layers to tap.  layer2 = fine-grained
-    #   spatial detail; layer3 = higher-level semantic features.  Using both
-    #   gives PatchCore its characteristic accuracy.
-    # coreset_sampling_ratio: greedy sub-sampling keeps this fraction of the
-    #   full patch set in the memory bank, reducing RAM and search time.
-    model = Patchcore(
-        backbone=args.backbone,
-        layers_list=args.layers,
-        coreset_sampling_ratio=args.coreset_ratio,
-        num_neighbors=args.num_neighbors,
-    )
+    # The Patchcore constructor API differs between anomalib versions:
+    #   older (≤0.4): layers_list=, coreset_sampling_ratio=, num_neighbors=
+    #   newer (≥1.0): layers=,      coreset_sampling_ratio=, num_neighbors=
+    # We try the newer API first and fall back to the older one.
+    try:
+        model = Patchcore(
+            backbone=args.backbone,
+            layers=args.layers,
+            coreset_sampling_ratio=args.coreset_ratio,
+            num_neighbors=args.num_neighbors,
+        )
+        print("[train_patchcore] Using Patchcore API: layers= (anomalib ≥1.0)")
+    except TypeError:
+        model = Patchcore(
+            backbone=args.backbone,
+            layers_list=args.layers,
+            coreset_sampling_ratio=args.coreset_ratio,
+            num_neighbors=args.num_neighbors,
+        )
+        print("[train_patchcore] Using Patchcore API: layers_list= (anomalib ≤0.4)")
 
     # ── Engine ───────────────────────────────────────────────────────────────
     # default_root_dir controls where Lightning writes checkpoints, logs, and
