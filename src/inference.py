@@ -131,7 +131,13 @@ def load_model(checkpoint_path: str | Path):
 
     # map_location="cpu" ensures the checkpoint loads on CPU even if it was
     # saved on a GPU machine (Colab T4).
-    model = Patchcore.load_from_checkpoint(str(ckpt), map_location="cpu")
+    # weights_only=False is required because anomalib checkpoints contain
+    # torchvision Transform objects (not just tensors).  PyTorch ≥2.6 changed
+    # the default to True which breaks these checkpoints.  The checkpoint comes
+    # from our own Colab training run so it is trusted.
+    model = Patchcore.load_from_checkpoint(
+        str(ckpt), map_location="cpu", weights_only=False
+    )
     model.eval()
     return model
 
