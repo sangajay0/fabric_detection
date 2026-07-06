@@ -209,11 +209,28 @@ def run_inference(
     with torch.no_grad():
         predictions = model(batch)
 
-    # Anomalib's Patchcore forward() returns a dict:
-    #   "pred_score"   – scalar image-level anomaly score
-    #   "anomaly_map"  – (1, 1, H_model, W_model) pixel-level score tensor
-    score: float = float(predictions["pred_score"].squeeze().item())
-    raw_map: np.ndarray = predictions["anomaly_map"].squeeze().cpu().numpy()
+    # ── Parse predictions ─────────────────────────────────────────────────────
+    # anomalib ≥1.0 returns InferenceBatch (dataclass, also iterable):
+    #   field 0 → pred_score   shape (1,)          — image-level anomaly score
+    #   field 1 → pred_label   shape (1,)          — binary predicted label
+    #   field 2 → anomaly_map  shape (1,1,H,W)     — pixel-level score map
+    #   field 3 → pred_mask    shape (1,1,H,W)     — binarised anomaly mask
+    # anomalib ≤0.4 returns a plain dict with "pred_score" and "anomaly_map".
+    if isinstance(predictions, dict):
+        score: float = float(predictions["pred_score"].squeeze().item())
+        raw_map: np.ndarray = predictions["anomaly_map"].squeeze().cpu().numpy()
+    else:
+        # Handles both InferenceBatch (dataclass) and plain tuple/list.
+        # Attribute access is preferred; index fallback for safety.
+        pred_score_t  = getattr(predictions, "pred_score",  None)
+        anomaly_map_t = getattr(predictions, "anomaly_map", None)
+        if pred_score_t is None:
+            pred_score_t  = predictions[0]   # InferenceBatch index 0
+        if anomaly_map_t is None:
+            anomaly_map_t = predictions[2]   # InferenceBatch index 2
+        score   = float(pred_score_t.squeeze().item())
+        raw_map = anomaly_map_t.squeeze().cpu().numpy()
+
 
     # ── Post-process heatmap ──────────────────────────────────────────────────
     # Min-max normalise to [0, 1] for display
@@ -228,17 +245,30 @@ def run_inference(
     )
 
     # ── Threshold ─────────────────────────────────────────────────────────────
-    # Anomalib calibrates an image-level threshold during engine.test().
-    # It is stored in model.image_threshold.value after training + evaluation.
-    try:
-        threshold = float(model.image_threshold.value.item())
-        is_anomalous = score >= threshold
-    except AttributeError:
-        # Threshold not calibrated (e.g. test split was empty).  Fall back to
-        # a naive rule: flag if score is above 0.5 of the normalised range.
+    # Try to read the calibrated threshold from the model — attribute path
+    # differs between anomalib versions.
+    threshold = None
+    for attr_path in [
+        "post_processor._image_threshold",   # anomalib ≥1.0
+        "image_threshold.value",             # anomalib ≤0.4
+    ]:
+        try:
+            obj = model
+            for part in attr_path.split("."):
+                obj = getattr(obj, part)
+            threshold = float(obj.item()) if hasattr(obj, "item") else float(obj)
+            break
+        except AttributeError:
+            continue
+
+    if threshold is None:
+        # No calibrated threshold available — use midpoint of observed score range
         is_anomalous = score > 0.5
+    else:
+        is_anomalous = score >= threshold
 
     return InferenceResult(score=score, heatmap=heatmap, is_anomalous=is_anomalous)
+
 
 
 # ---------------------------------------------------------------------------
